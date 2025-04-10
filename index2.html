@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Private Key Data Finder</title>
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input, button { padding: 10px; margin-top: 10px; width: 100%; }
+    #result { margin-top: 20px; }
+    pre { background: #f3f3f3; padding: 15px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h2>Private Key Data Finder</h2>
+  <input type="text" id="inputKey" placeholder="Enter BTC address">
+  <button onclick="scrape()">Find Info</button>
+  <div id="result"></div>
+
+  <script>
+    async function scrape() {
+      const address = document.getElementById("inputKey").value.trim();
+      if (!address) return alert("Please enter an address!");
+
+      const url = `https://privatekeyfinder.io/private-keys/bitcoin/?private-key=${address}`;
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+      document.getElementById("result").innerHTML = "Fetching...";
+
+      try {
+        const res = await fetch(proxyUrl);
+        const html = await res.text();
+
+        // DOMParser buat parsing HTML di browser
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+
+        // Ambil semua <td> elemen
+        const tds = [...doc.querySelectorAll('td')];
+        const getValue = (label) => {
+          const index = tds.findIndex(td => td.textContent.trim() === label);
+          return index >= 0 && tds[index + 1] ? tds[index + 1].textContent.trim() : 'N/A';
+        };
+
+        const result = {
+          Address: getValue('Address'),
+          WIF: getValue('WIF'),
+          Hex: getValue('Hex')
+        };
+
+        document.getElementById("result").innerHTML = `
+          <pre>
+Address: ${result.Address}
+WIF: ${result.WIF}
+Hex: ${result.Hex}
+          </pre>
+        `;
+      } catch (err) {
+        console.error(err);
+        document.getElementById("result").innerText = "Error fetching or parsing data.";
+      }
+    }
+  </script>
+</body>
+</html>
